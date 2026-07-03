@@ -1,0 +1,2 @@
+    streamlit
+    duckgo_search
