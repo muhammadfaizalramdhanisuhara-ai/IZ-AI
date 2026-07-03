@@ -1,2 +1,2 @@
-    streamlit
-    duckgo_search
+streamlit
+openai==1.40.0
