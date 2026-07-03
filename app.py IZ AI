@@ -1,31 +1,20 @@
 import streamlit as st
+from openai import OpenAI
 from duckduckgo_search import DDGS
 
-st.set_page_config(page_title="IZ AI v5.0", page_icon="🤖")
+st.set_page_config(page_title="IZ AI v2.0", page_icon="🤖")
+st.title("IZ AI v2.0 🤖")
+st.caption("Chatbot AI + Bisa Cari Internet")
 
-st.title("IZ AI v5.0 🤖")
-st.caption("Chatbot Bahasa Indonesia | Bisa Cari Internet")
-st.write("---")
+# 1. Input API Key
+api_key = st.text_input("Masukkan API Key OpenAI:", type="password")
+if not api_key:
+    st.warning("Tempel API Key `sk-...` kamu dulu ya")
+    st.stop()
 
-# KAMUS LENGKAP IZ AI
-responses = {
-    "hai": "halo ada yang bisa saya bantu",
-    "halo": "halo ada yang bisa saya bantu",
-    "p": "p juga 😆",
-    "selamat pagi": "Selamat pagi! Semangat ya hari ini",
-    "selamat malam": "Selamat malam, jangan begadang terus",
-    "namamu siapa": "Aku IZ AI v5.0. Sekarang udah bisa cari info online",
-    "kamu siapa": "Aku IZ AI, chatbot buatan kamu sendiri",
-    "apa kabar": "Aku baik terus! Kamu gimana kabarnya?",
-    "gabut": "Gabut ya? Ngobrol sama aku aja biar nggak bosen",
-    "bosen": "Yuk aku kasih jokes: Kenapa komputer kedinginan? Soalnya windownya kebuka.",
-    "capek": "Istirahat dulu ya. Minum air putih dulu",
-    "makasih": "Sama-sama ❤️ Senang bisa bantu",
-    "maaf": "Iya nggak apa-apa. Aku maafin kok",
-    "menu": "Tanya apa aja. Kalau aku nggak tau, aku bakal cariin di internet",
-}
+client = OpenAI(api_key=api_key)
 
-# TAMPILAN CHAT
+# 2. Chat History
 if "chat" not in st.session_state:
     st.session_state.chat = []
 
@@ -33,33 +22,32 @@ for msg in st.session_state.chat:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-user_input = st.chat_input("Ketik pesan ke IZ AI...")
+# 3. Input User
+user_input = st.chat_input("Tanya apa aja ke IZ AI...")
 
 if user_input:
     st.session_state.chat.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.write(user_input)
 
-    user_input_lower = user_input.lower().strip()
-
-    if user_input_lower in responses:
-        reply = responses[user_input_lower]
-    else:
-        with st.spinner('IZ AI lagi cari di internet...'):
+    with st.chat_message("assistant"):
+        with st.spinner("IZ AI lagi mikir..."):
             try:
-                results = list(DDGS().text(user_input, max_results=1))
-                if results:
-                    reply = results[0]['body'][:400] + "..." # Dipotong biar nggak kepanjangan
-                else:
-                    reply = "Aku nggak nemu jawabannya di internet 😅 Coba kata kunci lain"
-            except:
-                reply = "Lagi error koneksinya. Coba lagi ya"
+                # Cari di internet dulu
+                search_results = DDGS().text(user_input, max_results=3)
+                context = "\n".join([r['body'] for r in search_results])
+                
+                # Kirim ke GPT bareng hasil search
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini", # Murah & cepet
+                    messages=[
+                        {"role": "system", "content": f"Kamu IZ AI. Jawab pakai Bahasa Indonesia. Ini data dari internet: {context}"},
+                        {"role": "user", "content": user_input}
+                    ]
+                )
+                reply = response.choices[0].message.content
+            except Exception as e:
+                reply = f"Aduh error: {e}"
 
-    st.session_state.chat.append({"role": "ai", "content": reply})
-    with st.chat_message("ai"):
-        st.write(reply)
-      streamlit
-duckgo_search
-[theme]
-primaryColor="#4F46E5"
-backgroundColor="#FFFFFF"
+            st.write(reply)
+            st.session_state.chat.append({"role": "assistant", "content": reply})
