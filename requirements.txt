@@ -1,3 +1,3 @@
-streamlit
-openai==1.54.4
-duckduckgo_search
+    streamlit
+    openai==1.54.4
+    duckduckgo_search
